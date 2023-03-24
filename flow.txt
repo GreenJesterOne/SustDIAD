@@ -1,0 +1,26 @@
+
+FUNCTION Main_copy GLOBAL
+    SET Request TO $'''{
+     \"model\": \"gpt-3.5-turbo\",
+     \"messages\": [{\"role\": \"user\", \"content\": \"Say This is a Test\"}],
+     \"temperature\": 0.7
+ }'''
+    Variables.ConvertJsonToCustomObject Json: Request CustomObject=> RequestObject
+    SET RequestObject['messages'][0]['content'] TO GPTPrompt
+    SET OrganizationID TO $'''org-TABGZzk2DxgbOI317X8RKblF'''
+    SET oaik TO $'''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'''
+    SET MIME_JSON TO $'''application/json'''
+    SET AuthHeader TO $'''Authorization: Bearer %oaik%
+OpenAI-Organization: %OrganizationId%'''
+    SET BaseURL TO $'''https://api.openai.com/v1'''
+    Variables.ConvertCustomObjectToJson CustomObject: RequestObject Json=> RequestAsJSON
+    Web.InvokeWebService.InvokeWebService Url: $'''%BaseURL%/chat/completions''' Method: Web.Method.Post Accept: $'''application/json''' ContentType: $'''application/json''' CustomHeaders: AuthHeader RequestBody: RequestAsJSON ConnectionTimeout: 30 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: False UserAgent: $'''Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.21) Gecko/20100312 Firefox/3.6''' Encoding: Web.Encoding.utf_8 AcceptUntrustedCertificates: False ResponseHeaders=> WebServiceResponseHeaders Response=> WebServiceResponse StatusCode=> StatusCode
+    DISABLE Display.ShowMessageDialog.ShowMessage Title: $'''Ergebnis''' Message: $'''%WebServiceResponseHeaders%
+-------------------------------
+%WebServiceResponse%''' Icon: Display.Icon.Information Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+    Variables.ConvertJsonToCustomObject Json: WebServiceResponse CustomObject=> JsonAsCustomObject
+    SET ResponseMessage TO JsonAsCustomObject['choices'][0]['message']['content']
+    Text.Trim Text: ResponseMessage TrimOption: Text.TrimOption.Both TrimmedText=> ResponseMessage
+    DISABLE Display.ShowMessageDialog.ShowMessage Title: $'''Ergebnis''' Message: $'''>>>>%ResponseMessage%<<<<''' Icon: Display.Icon.Information Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+    SET GPTResponse TO ResponseMessage
+END FUNCTION
